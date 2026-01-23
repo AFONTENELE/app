@@ -1,216 +1,114 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Maré Hoje - Vila de Maceió</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maré em Camocim</title>
+    <style>
+        @keyframes moveGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
-<style>
-    /* ------------------------------------- */
-    /* VARIÁVEIS DE TEMA                     */
-    /* ------------------------------------- */
-    :root {
-        --bg-color: #eef2f3;
-        --text-color: #222;
-        --card-bg: #ffffff;
-        --card-shadow: rgba(0,0,0,0.18);
-        --accent: #0077ff;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
 
-        --soft-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        --soft-shadow-strong: 0 6px 18px rgba(0,0,0,0.22);
-    }
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.8s ease;
+            background-size: 400% 400%;
+            animation: moveGradient 15s ease infinite;
+            padding: 20px;
+        }
 
-    .dark-mode {
-        --bg-color: #0d1117;
-        --text-color: #e6edf3;
-        --card-bg: #161b22;
-        --card-shadow: rgba(255,255,255,0.05);
+        /* Tema Claro: Azul Piscina */
+        body.light-mode { 
+            background-image: linear-gradient(-45deg, #e0f7fa, #80deea, #ffffff, #4dd0e1); 
+            color: #222; 
+        }
 
-        --soft-shadow: 0 4px 12px rgba(255,255,255,0.05);
-        --soft-shadow-strong: 0 6px 18px rgba(255,255,255,0.08);
-    }
+        /* Tema Escuro: Roxo Profundo */
+        body.dark-mode { 
+            background-image: linear-gradient(-45deg, #1a0033, #2e004f, #4b0082, #000000); 
+            color: #ffffff; 
+        }
 
-    /* ------------------------------------- */
-    /* ANIMAÇÕES                             */
-    /* ------------------------------------- */
+        .container { width: 100%; max-width: 450px; text-align: center; }
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
+        .toggle-wrapper { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 15px; gap: 10px; }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #bb86fc; }
+        input:checked + .slider:before { transform: translateX(22px); }
 
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+        .card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
 
-    @keyframes typing {
-        0% { width: 0; }
-        100% { width: 100%; }
-    }
+        .info-topo { display: flex; justify-content: space-around; margin-bottom: 15px; }
+        .badge-info { background: rgba(0,0,0,0.08); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; }
+        body.dark-mode .badge-info { background: rgba(255,255,255,0.1); }
 
-    @keyframes gentleFloat {
-        0% { transform: translateY(0); }
-        50% { transform: translateY(-2px); }
-        100% { transform: translateY(0); }
-    }
+        .tide-img { width: 100%; max-width: 260px; border-radius: 20px; margin: 15px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: none; }
+        
+        .status-badge { font-size: 1.4rem; font-weight: bold; display: block; margin-top: 10px; color: #00796b; }
+        body.dark-mode .status-badge { color: #bb86fc; }
 
-    /* ------------------------------------- */
-    /* ESTILOS GERAIS                        */
-    /* ------------------------------------- */
-
-    body {
-        font-family: Arial, sans-serif;
-        background: var(--bg-color);
-        color: var(--text-color);
-        padding: 20px;
-
-        transition: background 0.35s ease, color 0.35s ease;
-        animation: fadeIn 0.7s ease;
-    }
-
-    .container {
-        max-width: 500px;
-        margin: auto;
-        background: var(--card-bg);
-        padding: 28px;
-        border-radius: 16px;
-
-        /* SOMBREAMENTO SUAVE E ELEGANTE */
-        box-shadow: var(--soft-shadow-strong);
-
-        transition: background 0.35s ease, box-shadow 0.35s ease;
-
-        animation: slideUp 0.7s ease;
-    }
-
-    h2 {
-        text-align: center;
-        color: var(--accent);
-        margin-bottom: 15px;
-        font-weight: 700;
-        animation: fadeIn 1s ease;
-    }
-
-    #msg {
-        text-align: center;
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 18px;
-
-        /* efeito de digitação suave */
-        white-space: nowrap;
-        overflow: hidden;
-        border-right: 2px solid var(--accent);
-        width: 0;
-        animation: typing 2.2s steps(40) forwards;
-    }
-
-    #resultado p {
-        font-size: 18px;
-        margin: 8px 0;
-
-        animation: slideUp 0.4s ease;
-    }
-
-    /* ------------------------------------- */
-    /* BOTÃO COM RELEVO                      */
-    /* ------------------------------------- */
-
-    .toggle-btn {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 15px;
-    }
-
-    button {
-        padding: 11px 22px;
-        border-radius: 10px;
-        border: none;
-        background: var(--accent);
-        color: white;
-        cursor: pointer;
-        font-weight: bold;
-
-        /* ANIMAÇÕES SUAVES */
-        transition: 
-            background 0.25s ease,
-            transform 0.15s ease,
-            box-shadow 0.25s ease;
-
-        /* RELEVO */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-
-        animation: gentleFloat 3s ease-in-out infinite;
-    }
-
-    button:hover {
-        transform: scale(1.04);
-        box-shadow: 0 6px 14px rgba(0,0,0,0.28);
-    }
-
-    button:active {
-        transform: scale(0.97);
-        box-shadow: 0 3px 6px rgba(0,0,0,0.2) inset;
-    }
-</style>
-
+        .secao-titulo { margin-top: 20px; font-size: 0.8rem; text-align: left; border-bottom: 1px solid rgba(128,128,128,0.3); padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .event-list { text-align: left; margin-top: 8px; }
+        .event-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(128,128,128,0.1); }
+    </style>
 </head>
-<body>
+<body class="light-mode">
+    <div class="container">
+        <div class="toggle-wrapper">
+            <span id="label-modo">Modo Claro</span>
+            <label class="switch">
+                <input type="checkbox" id="mode-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
 
-<div class="container">
+        <h2 id="saudacao">Olá!</h2>
+        <h1>Maré em Camocim</h1>
+        
+        <div class="card">
+            <div class="info-topo">
+                <div class="badge-info" id="lua-display">🌑 ...</div>
+                <div class="badge-info" id="clima-display">🌡️ ...</div>
+            </div>
 
-    <div class="toggle-btn">
-        <button onclick="alternarModo()">Alternar Modo Claro/Escuro</button>
+            <div class="foco-atual">
+                <span class="status-badge" id="status-text">Sincronizando...</span>
+                <p id="proxima-info" style="font-size: 0.9rem; opacity: 0.8;">--</p>
+            </div>
+
+            <img id="mare-imagem" src="" alt="Maré" class="tide-img">
+
+            <div>
+                <h4 class="secao-titulo">Hoje</h4>
+                <div id="lista-hoje" class="event-list"></div>
+            </div>
+
+            <div>
+                <h4 class="secao-titulo">Amanhã</h4>
+                <div id="lista-amanha" class="event-list"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="msg">...</div>
-
-    <h2>Maré de Hoje — Vila de Maceió</h2>
-
-    <div id="resultado">Carregando...</div>
-
-</div>
-
-<script src="dados.js"></script>
-<script src="app.js"></script>
-
-<script>
-/* Modo Escuro */
-function alternarModo() {
-    document.body.classList.toggle("dark-mode");
-
-    if (document.body.classList.contains("dark-mode")) {
-        localStorage.setItem("tema", "dark");
-    } else {
-        localStorage.setItem("tema", "light");
-    }
-}
-
-(function aplicarTemaSalvo() {
-    const tema = localStorage.getItem("tema");
-    if (tema === "dark") {
-        document.body.classList.add("dark-mode");
-    }
-})();
-
-/* Saudação */
-(function mensagemSaudacao() {
-    const hora = new Date().getHours();
-    const msg = document.getElementById("msg");
-
-    let texto = "";
-
-    if (hora >= 5 && hora < 12) {
-        texto = "☀️ Bom dia, Thais!";
-    } else if (hora >= 12 && hora < 18) {
-        texto = "🌤️ Boa tarde, Thais!";
-    } else {
-        texto = "🌙 Boa noite, Thais!";
-    }
-
-    msg.textContent = texto;
-})();
-</script>
-
+    <script src="dados.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
