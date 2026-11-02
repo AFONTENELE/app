@@ -8,6 +8,8 @@ const TEMP_ALERTA_HIDRATACAO = 28; // Acima disto, recomenda reforçar a água
 
 // Estado
 let tempAtual = null;
+let nascerSolStr = "--:--";
+let porSolStr = "--:--";
 let nascerSolMinutos = null;
 let porSolMinutos = null;
 let modo = 'mare'; // 'mare' | 'corrida'
@@ -20,7 +22,7 @@ function direcaoVento(graus) {
     return pontos[Math.round(graus / 45) % 8];
 }
 
-// Converte string de hora para minutos totais
+// Converte string de hora (ex: "05:30" ou "2026-06-06T05:30") para minutos totais
 function horaParaMinutos(strHora) {
     if (!strHora) return 0;
     const partes = strHora.split('T');
@@ -29,7 +31,15 @@ function horaParaMinutos(strHora) {
     return h * 60 + m;
 }
 
-// Busca dados de Clima, Vento e Sol
+// Extrai apenas o horário "HH:MM" de uma string ISO
+function formatarHoraSimples(strIso) {
+    if (!strIso) return "--:--";
+    const partes = strIso.split('T');
+    const horaTime = partes.length > 1 ? partes[1] : partes[0];
+    return horaTime.substring(0, 5);
+}
+
+// Busca dados de Clima, Vento e Sol com robustez
 async function buscarAPIs() {
     const climaDisplay = document.getElementById('clima-display');
     const ventoDisplay = document.getElementById('vento-display');
@@ -44,16 +54,20 @@ async function buscarAPIs() {
             tempAtual = atual.temperature;
             climaDisplay.innerHTML = `🌡️ ${Math.round(tempAtual)}°C`;
             ventoDisplay.innerHTML = `💨 ${Math.round(atual.windspeed)} nós ${direcaoVento(atual.winddirection)}`;
+        } else {
+            climaDisplay.innerHTML = "🌡️ --";
+            ventoDisplay.innerHTML = "💨 --";
         }
 
         if (dataClima.daily && dataClima.daily.sunrise && dataClima.daily.sunset) {
+            nascerSolStr = formatarHoraSimples(dataClima.daily.sunrise[0]);
+            porSolStr = formatarHoraSimples(dataClima.daily.sunset[0]);
             nascerSolMinutos = horaParaMinutos(dataClima.daily.sunrise[0]);
             porSolMinutos = horaParaMinutos(dataClima.daily.sunset[0]);
         }
     } catch (e) {
-        // Se a API de temperatura falhar ou demorar, mantemos o visual limpo
         if (tempAtual === null) climaDisplay.innerHTML = "🌡️ --";
-        if (!ventoDisplay.innerText.includes("nós")) ventoDisplay.innerHTML = "💨 --";
+        ventoDisplay.innerHTML = "💨 --";
     }
     atualizarApp();
 
@@ -139,7 +153,6 @@ function renderCorrida(agora, hora) {
 
     const minAtual = hora * 60 + agora.getMinutes();
 
-    // Estimativa de reserva caso os dados de sol ainda estejam carregando (Nascer: ~05:30 / Pôr: ~17:30)
     const nascerSol = nascerSolMinutos !== null ? nascerSolMinutos : 5 * 60 + 30;
     const porSol = porSolMinutos !== null ? porSolMinutos : 17 * 60 + 30;
 
@@ -151,26 +164,28 @@ function renderCorrida(agora, hora) {
     const aptoPor = diffPor >= 0 && diffPor <= 60;
     const horarioApto = aptoNascer || aptoPor;
 
+    // Informação fixa do sol para exibir na tela
+    const infoSol = `🌅 Nascer: ${nascerSolStr} | 🌇 Pôr: ${porSolStr}`;
+
     if (horarioApto) {
         statusTxt.innerText = "✅ APTO PARA CORRER!";
         
-        let mensagem = `Horário ideal em ${nomeLocal} (janela de 1h antes do nascer/pôr do sol).`;
+        let mensagem = `Horário ideal em ${nomeLocal} (janela de 1h antes do nascer/pôr do sol).<br>${infoSol}`;
 
-        // Acrescenta a informação de temperatura/hidratação se o dado de clima já tiver chegado
         if (tempAtual !== null) {
-            mensagem += ` Temp: ${Math.round(tempAtual)}°C.`;
+            mensagem += `<br>Temp: ${Math.round(tempAtual)}°C.`;
             if (tempAtual >= TEMP_ALERTA_HIDRATACAO) {
                 mensagem += " 💧 Atenção: dia quente, leve sua garrafinha de água!";
             }
         }
         
-        info.innerText = mensagem;
-        mostrarImagem("foto1.png"); // Foto da maré cheia quando apto
+        info.innerHTML = mensagem;
+        mostrarImagem("foto1.png"); // Exibe foto da maré alta quando recomendado
     } else {
         statusTxt.innerText = "❌ NÃO RECOMENDADO";
-        let detalheTemp = tempAtual !== null ? ` (Temp atual: ${Math.round(tempAtual)}°C)` : '';
-        info.innerText = `Fora do horário ideal em ${nomeLocal}. Prefira 1h antes do nascer ou pôr do sol.${detalheTemp}`;
-        mostrarImagem("corrida_quente.png");
+        let detalheTemp = tempAtual !== null ? ` (Temp: ${Math.round(tempAtual)}°C)` : '';
+        info.innerHTML = `Fora do horário ideal em ${nomeLocal}.${detalheTemp}<br>${infoSol}<br><small>Prefira 1h antes do nascer ou pôr do sol.</small>`;
+        mostrarImagem("foto2.png"); // Exibe foto da maré baixa quando não recomendado
     }
 }
 
@@ -178,7 +193,6 @@ function atualizarApp() {
     const agora = new Date();
     const hora = agora.getHours();
 
-    // Saudação
     const saudacao = document.getElementById('saudacao');
     if (saudacao) {
         if (hora >= 5 && hora < 12) saudacao.innerText = "Bom dia, Tais!";
@@ -259,5 +273,4 @@ buscarAPIs();
 setInterval(atualizarApp, 60000);
 setInterval(buscarAPIs, 15 * 60000);
 
-// Busca localização opcional em segundo plano
 setTimeout(tentarObterLocalizacaoSilenciosa, 1000);
