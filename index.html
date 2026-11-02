@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maré em Camocim</title>
+    <title>Maré e Corrida</title>
     <style>
         @keyframes moveGradient {
             0% { background-position: 0% 50%; }
@@ -11,78 +11,109 @@
             100% { background-position: 0% 50%; }
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
 
         body {
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: 0.8s ease;
+            transition: background 0.8s ease;
             background-size: 400% 400%;
-            animation: moveGradient 15s ease infinite;
-            padding: 20px;
+            animation: moveGradient 18s ease infinite;
+            padding: 16px;
         }
 
-        /* Tema Claro: Azul Piscina */
         body.light-mode { 
-            background-image: linear-gradient(-45deg, #e0f7fa, #80deea, #ffffff, #4dd0e1); 
-            color: #222; 
+            background-image: linear-gradient(-45deg, #e0f7fa, #80deea, #f1f8e9, #b2dfdb); 
+            color: #1e293b; 
         }
 
-        /* Tema Escuro: Roxo Profundo */
         body.dark-mode { 
-            background-image: linear-gradient(-45deg, #1a0033, #2e004f, #4b0082, #000000); 
-            color: #ffffff; 
+            background-image: linear-gradient(-45deg, #0f172a, #1e1b4b, #311042, #000000); 
+            color: #f8f9fa; 
         }
 
-        .container { width: 100%; max-width: 450px; text-align: center; }
+        .container { width: 100%; max-width: 440px; text-align: center; }
 
-        .toggle-wrapper { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 15px; gap: 10px; }
+        .toggle-wrapper { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px; gap: 8px; font-size: 0.85rem; font-weight: 600; opacity: 0.9; }
         
         .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #bb86fc; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.2); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: #7c3aed; }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        .card {
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(15px);
-            border-radius: 30px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+        h2#saudacao { font-size: 1rem; font-weight: 500; opacity: 0.8; margin-bottom: 2px; }
+        h1#titulo-app { font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
 
-        .info-topo { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-        .badge-info { background: rgba(0,0,0,0.08); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; }
-        body.dark-mode .badge-info { background: rgba(255,255,255,0.1); }
-
-        .tide-img { width: 100%; max-width: 260px; border-radius: 20px; margin: 15px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: none; }
-        
-        .status-badge { font-size: 1.4rem; font-weight: bold; display: block; margin-top: 10px; color: #00796b; }
-        body.dark-mode .status-badge { color: #bb86fc; }
-
-        .secao-titulo { margin-top: 20px; font-size: 0.8rem; text-align: left; border-bottom: 1px solid rgba(128,128,128,0.3); padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .event-list { text-align: left; margin-top: 8px; }
-        .event-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(128,128,128,0.1); }
-
-        .modos { display: flex; gap: 8px; justify-content: center; margin: 12px 0 18px; }
+        .modos { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
         .btn-modo {
-            flex: 1; padding: 10px 14px; border-radius: 20px; cursor: pointer;
-            border: 1px solid rgba(128,128,128,0.4); background: rgba(255,255,255,0.15);
-            color: inherit; font-size: 0.95rem; transition: .3s;
+            flex: 1; padding: 10px 14px; border-radius: 14px; cursor: pointer;
+            border: 1px solid rgba(128,128,128,0.2); background: rgba(255,255,255,0.2);
+            color: inherit; font-size: 0.9rem; font-weight: 600; transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
         }
-        .btn-modo.ativo { background: #00796b; color: #fff; border-color: transparent; font-weight: bold; }
-        body.dark-mode .btn-modo.ativo { background: #bb86fc; color: #1a0033; }
+        .btn-modo.ativo { background: #00796b; color: #fff; border-color: transparent; box-shadow: 0 6px 16px rgba(0,121,107,0.35); transform: translateY(-1px); }
+        body.dark-mode .btn-modo.ativo { background: #8b5cf6; color: #fff; box-shadow: 0 6px 16px rgba(139,92,246,0.35); }
+
+        .card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        body.dark-mode .card {
+            background: rgba(30, 41, 59, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-topo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+        .badge-info { 
+            background: rgba(255,255,255,0.3); 
+            padding: 8px 6px; 
+            border-radius: 12px; 
+            font-size: 0.78rem; 
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        body.dark-mode .badge-info { background: rgba(15, 23, 42, 0.4); border-color: rgba(255,255,255,0.06); }
+
+        .foco-atual {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        body.dark-mode .foco-atual { background: rgba(15, 23, 42, 0.35); border-color: rgba(255, 255, 255, 0.08); }
+
+        .status-badge { font-size: 1.15rem; font-weight: 700; display: block; margin-bottom: 6px; color: #00796b; letter-spacing: -0.3px; }
+        body.dark-mode .status-badge { color: #a78bfa; }
+
+        #proxima-info { font-size: 0.88rem; line-height: 1.4; opacity: 0.95; }
+
+        .tide-img { width: 100%; max-width: 200px; border-radius: 14px; margin: 4px 0 14px; box-shadow: 0 6px 16px rgba(0,0,0,0.18); display: none; object-fit: cover; }
+
+        .secao-titulo { margin-top: 14px; font-size: 0.72rem; text-align: left; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 4px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; opacity: 0.75; }
+        .event-list { text-align: left; margin-top: 6px; max-height: 120px; overflow-y: auto; padding-right: 4px; }
+        .event-item { display: flex; justify-content: space-between; padding: 6px 4px; font-size: 0.85rem; border-bottom: 1px solid rgba(128,128,128,0.12); }
+        .event-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body class="light-mode">
     <div class="container">
         <div class="toggle-wrapper">
-            <span id="label-modo">Modo Claro</span>
+            <span id="label-modo">Claro</span>
             <label class="switch">
                 <input type="checkbox" id="mode-toggle">
                 <span class="slider"></span>
@@ -90,7 +121,7 @@
         </div>
 
         <h2 id="saudacao">Olá!</h2>
-        <h1 id="titulo-app">Maré em Camocim</h1>
+        <h1 id="titulo-app">Carregando...</h1>
 
         <div class="modos">
             <button class="btn-modo ativo" id="btn-mare">🌊 Maré</button>
@@ -99,18 +130,19 @@
         
         <div class="card">
             <div class="info-topo">
-                <div class="badge-info" id="lua-display">🌑 ...</div>
-                <div class="badge-info" id="clima-display">🌡️ ...</div>
-                <div class="badge-info" id="vento-display">💨 ...</div>
+                <div class="badge-info" id="lua-display"><span>🌑</span> <span>--</span></div>
+                <div class="badge-info" id="clima-display"><span>🌡️</span> <span>--</span></div>
+                <div class="badge-info" id="vento-display"><span>💨</span> <span>--</span></div>
             </div>
 
             <div class="foco-atual">
                 <span class="status-badge" id="status-text">Sincronizando...</span>
-                <p id="proxima-info" style="font-size: 0.9rem; opacity: 0.8;">--</p>
+                <p id="proxima-info">Aguarde um momento...</p>
             </div>
 
-            <img id="mare-imagem" src="" alt="Maré" class="tide-img">
+            <img id="mare-imagem" src="" alt="Visualização" class="tide-img">
 
+            <!-- Bloco exclusivo para o modo Maré -->
             <div id="bloco-mare">
                 <div>
                     <h4 class="secao-titulo">Hoje</h4>
@@ -120,6 +152,23 @@
                 <div>
                     <h4 class="secao-titulo">Amanhã</h4>
                     <div id="lista-amanha" class="event-list"></div>
+                </div>
+            </div>
+
+            <!-- Novo Bloco exclusivo e detalhado para o modo Corrida -->
+            <div id="bloco-corrida" style="display: none;">
+                <div>
+                    <h4 class="secao-titulo">Janela Diária de Sol</h4>
+                    <div class="event-list">
+                        <div class="event-item"><span>🌅 Nascer do Sol</span><span id="detalhe-nascer">--:--</span></div>
+                        <div class="event-item"><span>🌇 Pôr do Sol</span><span id="detalhe-por">--:--</span></div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="secao-titulo">Condições e Recomendações</h4>
+                    <div id="detalhes-recomendacao" style="text-align: left; margin-top: 8px; font-size: 0.85rem; line-height: 1.4; opacity: 0.9;">
+                        Analisando ambiente...
+                    </div>
                 </div>
             </div>
         </div>
