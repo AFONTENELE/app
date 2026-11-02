@@ -1,4 +1,4 @@
-// Coordenadas padrão (Camocim - CE)
+// Coordenadas padrão fixas (Camocim - CE) para carregamento instantâneo
 let LAT = -2.90;
 let LON = -40.84;
 let nomeLocal = "Camocim";
@@ -16,6 +16,7 @@ try { modo = localStorage.getItem('modo') || 'mare'; } catch (e) {}
 
 // Converte graus em ponto cardeal
 function direcaoVento(graus) {
+    if (graus === undefined || graus === null) return '';
     const pontos = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
     return pontos[Math.round(graus / 45) % 8];
 }
@@ -29,53 +30,26 @@ function horaParaMinutos(strHora) {
     return h * 60 + m;
 }
 
-// Função para obter a localização atual do dispositivo
-function obterLocalizacaoUsuario() {
-    return new Promise((resolve) => {
-        if (!navigator.geolocation) {
-            resolve(); // Geolocalização não suportada, mantém Camocim
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                LAT = position.coords.latitude;
-                LON = position.coords.longitude;
-                
-                try {
-                    const resNom = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${LAT}&lon=${LON}`);
-                    const dataNom = await resNom.json();
-                    if (dataNom && dataNom.address) {
-                        nomeLocal = dataNom.address.city || dataNom.address.town || dataNom.address.municipality || "sua região";
-                    }
-                } catch (e) {
-                    nomeLocal = "sua localização";
-                }
-                resolve();
-            },
-            (error) => {
-                // Se a permissão for negada, mantém Camocim
-                resolve();
-            },
-            { timeout: 10000 }
-        );
-    });
-}
-
+// Função para buscar dados do Open-Meteo e Farmsense de forma rápida
 async function buscarAPIs() {
     const climaDisplay = document.getElementById('clima-display');
     const ventoDisplay = document.getElementById('vento-display');
     const luaDisplay = document.getElementById('lua-display');
 
-    // 1. Clima, Vento (em nós) e Horas de Sol (Open-Meteo)
+    // 1. Clima, Vento (em nós) e Horas de Sol
     try {
         const resClima = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&daily=sunrise,sunset&timezone=auto&wind_speed_unit=knots`);
         const dataClima = await resClima.json();
         
-        const atual = dataClima.current_weather;
-        tempAtual = atual.temperature;
-        climaDisplay.innerHTML = `🌡️ ${Math.round(tempAtual)}°C`;
-        ventoDisplay.innerHTML = `💨 ${Math.round(atual.windspeed)} nós ${direcaoVento(atual.winddirection)}`;
+        if (dataClima && dataClima.current_weather) {
+            const atual = dataClima.current_weather;
+            tempAtual = atual.temperature;
+            climaDisplay.innerHTML = `🌡️ ${Math.round(tempAtual)}°C`;
+            ventoDisplay.innerHTML = `💨 ${Math.round(atual.windspeed)} nós ${direcaoVento(atual.winddirection)}`;
+        } else {
+            climaDisplay.innerHTML = "🌡️ --";
+            ventoDisplay.innerHTML = "💨 --";
+        }
 
         if (dataClima.daily && dataClima.daily.sunrise && dataClima.daily.sunset) {
             nascerSolMinutos = horaParaMinutos(dataClima.daily.sunrise[0]);
@@ -109,6 +83,7 @@ async function buscarAPIs() {
 
 function mostrarImagem(src) {
     const img = document.getElementById('mare-imagem');
+    if (!img) return;
     img.onerror = () => { img.style.display = 'none'; };
     img.src = src;
     img.style.display = 'inline-block';
@@ -170,7 +145,8 @@ function renderCorrida(agora, hora) {
     if (tempAtual === null || nascerSolMinutos === null || porSolMinutos === null) {
         statusTxt.innerText = "Carregando dados...";
         info.innerText = "Aguarde um momento";
-        document.getElementById('mare-imagem').style.display = 'none';
+        const img = document.getElementById('mare-imagem');
+        if (img) img.style.display = 'none';
         return;
     }
 
@@ -211,16 +187,23 @@ function atualizarApp() {
 
     // Saudação
     const saudacao = document.getElementById('saudacao');
-    if (hora >= 5 && hora < 12) saudacao.innerText = "Bom dia, Tais!";
-    else if (hora >= 12 && hora < 18) saudacao.innerText = "Boa tarde, Tais!";
-    else saudacao.innerText = "Boa noite, Tais!";
+    if (saudacao) {
+        if (hora >= 5 && hora < 12) saudacao.innerText = "Bom dia, Tais!";
+        else if (hora >= 12 && hora < 18) saudacao.innerText = "Boa tarde, Tais!";
+        else saudacao.innerText = "Boa noite, Tais!";
+    }
 
-    // Mostra/oculta blocos conforme o modo
     const mostrarMare = modo === 'mare';
-    document.getElementById('bloco-mare').style.display = mostrarMare ? 'block' : 'none';
-    document.getElementById('titulo-app').innerText = mostrarMare ? `Maré em ${nomeLocal}` : `Corrida em ${nomeLocal}`;
-    document.getElementById('btn-mare').classList.toggle('ativo', mostrarMare);
-    document.getElementById('btn-corrida').classList.toggle('ativo', !mostrarMare);
+    const blocoMare = document.getElementById('bloco-mare');
+    if (blocoMare) blocoMare.style.display = mostrarMare ? 'block' : 'none';
+    
+    const tituloApp = document.getElementById('titulo-app');
+    if (tituloApp) tituloApp.innerText = mostrarMare ? `Maré em ${nomeLocal}` : `Corrida em ${nomeLocal}`;
+    
+    const btnMare = document.getElementById('btn-mare');
+    const btnCorrida = document.getElementById('btn-corrida');
+    if (btnMare) btnMare.classList.toggle('ativo', mostrarMare);
+    if (btnCorrida) btnCorrida.classList.toggle('ativo', !mostrarMare);
 
     if (mostrarMare) {
         renderMare(agora, hora);
@@ -235,27 +218,52 @@ function trocarModo(novo) {
     atualizarApp();
 }
 
-document.getElementById('btn-mare').addEventListener('click', () => trocarModo('mare'));
-document.getElementById('btn-corrida').addEventListener('click', () => trocarModo('corrida'));
+const btnMareEl = document.getElementById('btn-mare');
+const btnCorridaEl = document.getElementById('btn-corrida');
+if (btnMareEl) btnMareEl.addEventListener('click', () => trocarModo('mare'));
+if (btnCorridaEl) btnCorridaEl.addEventListener('click', () => trocarModo('corrida'));
 
 // Alternar Temas
 const toggle = document.getElementById('mode-toggle');
-toggle.addEventListener('change', () => {
-    if (toggle.checked) {
-        document.body.classList.replace('light-mode', 'dark-mode');
-        document.getElementById('label-modo').innerText = "Modo Noturno";
-    } else {
-        document.body.classList.replace('dark-mode', 'light-mode');
-        document.getElementById('label-modo').innerText = "Modo Claro";
-    }
-});
-
-// Inicialização
-async function iniciarApp() {
-    await obterLocalizacaoUsuario();
-    await buscarAPIs();
-    setInterval(atualizarApp, 60000);
-    setInterval(buscarAPIs, 15 * 60000);
+if (toggle) {
+    toggle.addEventListener('change', () => {
+        if (toggle.checked) {
+            document.body.classList.replace('light-mode', 'dark-mode');
+            document.getElementById('label-modo').innerText = "Modo Noturno";
+        } else {
+            document.body.classList.replace('dark-mode', 'light-mode');
+            document.getElementById('label-modo').innerText = "Modo Claro";
+        }
+    });
 }
 
-iniciarApp();
+// Tenta atualizar a localização em segundo plano (sem travar o carregamento inicial)
+function tentarObterLocalizacaoSilenciosa() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const novaLat = position.coords.latitude;
+            const novaLon = position.coords.longitude;
+            try {
+                const resNom = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${novaLat}&lon=${novaLon}`);
+                const dataNom = await resNom.json();
+                if (dataNom && dataNom.address) {
+                    LAT = novaLat;
+                    LON = novaLon;
+                    nomeLocal = dataNom.address.city || dataNom.address.town || dataNom.address.municipality || "sua região";
+                    buscarAPIs(); // Atualiza os dados com a nova localização encontrada
+                }
+            } catch (e) {}
+        },
+        (error) => {},
+        { timeout: 5000 }
+    );
+}
+
+// Inicialização imediata com Camocim para carregar rápido
+buscarAPIs();
+setInterval(atualizarApp, 60000);
+setInterval(buscarAPIs, 15 * 60000);
+
+// Executa a verificação de GPS de forma assíncrona/não-obstrutiva em segundo plano
+setTimeout(tentarObterLocalizacaoSilenciosa, 1000);
