@@ -4,7 +4,6 @@ let LON = -40.84;
 let nomeLocal = "Camocim";
 
 // Configurações de Corrida
-const TEMP_BOM_CORRIDA = 30; // Temperatura ideal máxima (°C)
 const TEMP_ALERTA_HIDRATACAO = 28; // Acima disto, recomenda reforçar a água
 
 // Estado
@@ -30,13 +29,12 @@ function horaParaMinutos(strHora) {
     return h * 60 + m;
 }
 
-// Função para buscar dados do Open-Meteo e Farmsense de forma rápida
+// Busca dados de Clima, Vento e Sol
 async function buscarAPIs() {
     const climaDisplay = document.getElementById('clima-display');
     const ventoDisplay = document.getElementById('vento-display');
     const luaDisplay = document.getElementById('lua-display');
 
-    // 1. Clima, Vento (em nós) e Horas de Sol
     try {
         const resClima = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&daily=sunrise,sunset&timezone=auto&wind_speed_unit=knots`);
         const dataClima = await resClima.json();
@@ -46,9 +44,6 @@ async function buscarAPIs() {
             tempAtual = atual.temperature;
             climaDisplay.innerHTML = `🌡️ ${Math.round(tempAtual)}°C`;
             ventoDisplay.innerHTML = `💨 ${Math.round(atual.windspeed)} nós ${direcaoVento(atual.winddirection)}`;
-        } else {
-            climaDisplay.innerHTML = "🌡️ --";
-            ventoDisplay.innerHTML = "💨 --";
         }
 
         if (dataClima.daily && dataClima.daily.sunrise && dataClima.daily.sunset) {
@@ -56,13 +51,13 @@ async function buscarAPIs() {
             porSolMinutos = horaParaMinutos(dataClima.daily.sunset[0]);
         }
     } catch (e) {
-        tempAtual = null;
-        climaDisplay.innerHTML = "🌡️ --";
-        ventoDisplay.innerHTML = "💨 --";
+        // Se a API de temperatura falhar ou demorar, mantemos o visual limpo
+        if (tempAtual === null) climaDisplay.innerHTML = "🌡️ --";
+        if (!ventoDisplay.innerText.includes("nós")) ventoDisplay.innerHTML = "💨 --";
     }
     atualizarApp();
 
-    // 2. Lua (Farmsense)
+    // Lua (Farmsense)
     try {
         const unixTime = Math.floor(Date.now() / 1000);
         const resLua = await fetch(`https://api.farmsense.net/v1/moonphases/?d=${unixTime}`);
@@ -142,41 +137,39 @@ function renderCorrida(agora, hora) {
     const statusTxt = document.getElementById('status-text');
     const info = document.getElementById('proxima-info');
 
-    if (tempAtual === null || nascerSolMinutos === null || porSolMinutos === null) {
-        statusTxt.innerText = "Carregando dados...";
-        info.innerText = "Aguarde um momento";
-        const img = document.getElementById('mare-imagem');
-        if (img) img.style.display = 'none';
-        return;
-    }
-
     const minAtual = hora * 60 + agora.getMinutes();
-    
-    // Janela de 1h antes do nascer ou pôr do sol
-    const diffNascer = nascerSolMinutos - minAtual;
-    const diffPor = porSolMinutos - minAtual;
+
+    // Estimativa de reserva caso os dados de sol ainda estejam carregando (Nascer: ~05:30 / Pôr: ~17:30)
+    const nascerSol = nascerSolMinutos !== null ? nascerSolMinutos : 5 * 60 + 30;
+    const porSol = porSolMinutos !== null ? porSolMinutos : 17 * 60 + 30;
+
+    // Janela de aptidão: 1 hora antes do nascer ou do pôr do sol
+    const diffNascer = nascerSol - minAtual;
+    const diffPor = porSol - minAtual;
 
     const aptoNascer = diffNascer >= 0 && diffNascer <= 60;
     const aptoPor = diffPor >= 0 && diffPor <= 60;
-    const horarioBom = aptoNascer || aptoPor;
+    const horarioApto = aptoNascer || aptoPor;
 
-    const temperaturaBoa = tempAtual <= TEMP_BOM_CORRIDA;
-
-    if (horarioBom && temperaturaBoa) {
+    if (horarioApto) {
         statusTxt.innerText = "✅ APTO PARA CORRER!";
-        let mensagem = `Horário ideal em ${nomeLocal} (perto do nascer/pôr do sol) e temperatura agradável (${Math.round(tempAtual)}°C).`;
-        if (tempAtual >= TEMP_ALERTA_HIDRATACAO) {
-            mensagem += " 💧 Atenção: dia quente, leve a sua garrafa de água!";
+        
+        let mensagem = `Horário ideal em ${nomeLocal} (janela de 1h antes do nascer/pôr do sol).`;
+
+        // Acrescenta a informação de temperatura/hidratação se o dado de clima já tiver chegado
+        if (tempAtual !== null) {
+            mensagem += ` Temp: ${Math.round(tempAtual)}°C.`;
+            if (tempAtual >= TEMP_ALERTA_HIDRATACAO) {
+                mensagem += " 💧 Atenção: dia quente, leve sua garrafinha de água!";
+            }
         }
+        
         info.innerText = mensagem;
-        mostrarImagem("foto1.png"); // Exibe a mesma foto da maré cheia
+        mostrarImagem("foto1.png"); // Foto da maré cheia quando apto
     } else {
         statusTxt.innerText = "❌ NÃO RECOMENDADO";
-        let motivo = [];
-        if (!horarioBom) motivo.push("Fora da janela de 1h antes do nascer/pôr do sol");
-        if (!temperaturaBoa) motivo.push(`Temperatura alta (${Math.round(tempAtual)}°C)`);
-        
-        info.innerText = `Condições desfavoráveis em ${nomeLocal}: ${motivo.join('. ')}.`;
+        let detalheTemp = tempAtual !== null ? ` (Temp atual: ${Math.round(tempAtual)}°C)` : '';
+        info.innerText = `Fora do horário ideal em ${nomeLocal}. Prefira 1h antes do nascer ou pôr do sol.${detalheTemp}`;
         mostrarImagem("corrida_quente.png");
     }
 }
@@ -237,7 +230,7 @@ if (toggle) {
     });
 }
 
-// Tenta atualizar a localização em segundo plano (sem travar o carregamento inicial)
+// Tenta atualizar a localização em segundo plano de forma silenciosa
 function tentarObterLocalizacaoSilenciosa() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -251,7 +244,7 @@ function tentarObterLocalizacaoSilenciosa() {
                     LAT = novaLat;
                     LON = novaLon;
                     nomeLocal = dataNom.address.city || dataNom.address.town || dataNom.address.municipality || "sua região";
-                    buscarAPIs(); // Atualiza os dados com a nova localização encontrada
+                    buscarAPIs();
                 }
             } catch (e) {}
         },
@@ -260,10 +253,11 @@ function tentarObterLocalizacaoSilenciosa() {
     );
 }
 
-// Inicialização imediata com Camocim para carregar rápido
+// Carregamento inicial imediato
+atualizarApp();
 buscarAPIs();
 setInterval(atualizarApp, 60000);
 setInterval(buscarAPIs, 15 * 60000);
 
-// Executa a verificação de GPS de forma assíncrona/não-obstrutiva em segundo plano
+// Busca localização opcional em segundo plano
 setTimeout(tentarObterLocalizacaoSilenciosa, 1000);
