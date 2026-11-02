@@ -1,19 +1,65 @@
-// Coordenadas de Camocim - CE
-const LAT = -2.90;
-const LON = -40.84;
+// Coordenadas padrão (Camocim - CE)
+let LAT = -2.90;
+let LON = -40.84;
+let nomeLocal = "Camocim";
 
-// Corrida: temperatura abaixo deste valor (°C) é considerada boa
-const TEMP_LIMITE_CORRIDA = 36;
+// Configurações de Corrida
+const TEMP_BOM_CORRIDA = 30; // Temperatura ideal máxima (°C)
+const TEMP_ALERTA_HIDRATACAO = 28; // Acima disto, recomenda reforçar a água
 
 // Estado
 let tempAtual = null;
+let nascerSolMinutos = null;
+let porSolMinutos = null;
 let modo = 'mare'; // 'mare' | 'corrida'
 try { modo = localStorage.getItem('modo') || 'mare'; } catch (e) {}
 
-// Converte graus em ponto cardeal (de onde o vento sopra)
+// Converte graus em ponto cardeal
 function direcaoVento(graus) {
     const pontos = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
     return pontos[Math.round(graus / 45) % 8];
+}
+
+// Converte string de hora para minutos totais
+function horaParaMinutos(strHora) {
+    if (!strHora) return 0;
+    const partes = strHora.split('T');
+    const horaTime = partes.length > 1 ? partes[1] : partes[0];
+    const [h, m] = horaTime.split(':').map(Number);
+    return h * 60 + m;
+}
+
+// Função para obter a localização atual do dispositivo
+function obterLocalizacaoUsuario() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            resolve(); // Geolocalização não suportada, mantém Camocim
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                LAT = position.coords.latitude;
+                LON = position.coords.longitude;
+                
+                try {
+                    const resNom = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${LAT}&lon=${LON}`);
+                    const dataNom = await resNom.json();
+                    if (dataNom && dataNom.address) {
+                        nomeLocal = dataNom.address.city || dataNom.address.town || dataNom.address.municipality || "sua região";
+                    }
+                } catch (e) {
+                    nomeLocal = "sua localização";
+                }
+                resolve();
+            },
+            (error) => {
+                // Se a permissão for negada, mantém Camocim
+                resolve();
+            },
+            { timeout: 10000 }
+        );
+    });
 }
 
 async function buscarAPIs() {
@@ -21,20 +67,26 @@ async function buscarAPIs() {
     const ventoDisplay = document.getElementById('vento-display');
     const luaDisplay = document.getElementById('lua-display');
 
-    // 1. Clima + vento (Open-Meteo) para Camocim
+    // 1. Clima, Vento (em nós) e Horas de Sol (Open-Meteo)
     try {
-        const resClima = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&wind_speed_unit=kmh`);
+        const resClima = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true&daily=sunrise,sunset&timezone=auto&wind_speed_unit=knots`);
         const dataClima = await resClima.json();
+        
         const atual = dataClima.current_weather;
         tempAtual = atual.temperature;
         climaDisplay.innerHTML = `🌡️ ${Math.round(tempAtual)}°C`;
-        ventoDisplay.innerHTML = `💨 ${Math.round(atual.windspeed)} km/h ${direcaoVento(atual.winddirection)}`;
+        ventoDisplay.innerHTML = `💨 ${Math.round(atual.windspeed)} nós ${direcaoVento(atual.winddirection)}`;
+
+        if (dataClima.daily && dataClima.daily.sunrise && dataClima.daily.sunset) {
+            nascerSolMinutos = horaParaMinutos(dataClima.daily.sunrise[0]);
+            porSolMinutos = horaParaMinutos(dataClima.daily.sunset[0]);
+        }
     } catch (e) {
         tempAtual = null;
         climaDisplay.innerHTML = "🌡️ --";
         ventoDisplay.innerHTML = "💨 --";
     }
-    atualizarApp(); // a temperatura mudou: redesenha o modo corrida
+    atualizarApp();
 
     // 2. Lua (Farmsense)
     try {
@@ -86,7 +138,6 @@ function renderMare(agora, hora) {
             if (diff < menorDiff) { menorDiff = diff; maisProximo = ev; }
         });
 
-        // Foto: >= 2.0m é cheia
         if (maisProximo.altura >= 2.0) {
             mostrarImagem("foto1.png");
             statusTxt.innerText = "MARÉ CHEIA";
@@ -112,25 +163,44 @@ function renderMare(agora, hora) {
 }
 
 // ---------- MODO CORRIDA ----------
-function renderCorrida() {
+function renderCorrida(agora, hora) {
     const statusTxt = document.getElementById('status-text');
     const info = document.getElementById('proxima-info');
 
-    if (tempAtual === null) {
-        statusTxt.innerText = "Sem dados de temperatura";
-        info.innerText = "Verifique sua conexão";
+    if (tempAtual === null || nascerSolMinutos === null || porSolMinutos === null) {
+        statusTxt.innerText = "Carregando dados...";
+        info.innerText = "Aguarde um momento";
         document.getElementById('mare-imagem').style.display = 'none';
         return;
     }
 
-    const temp = Math.round(tempAtual);
-    if (tempAtual < TEMP_LIMITE_CORRIDA) {
-        statusTxt.innerText = "✅ BOM PARA CORRER";
-        info.innerText = `${temp}°C: abaixo de ${TEMP_LIMITE_CORRIDA}°C, apto para atividade ao ar livre`;
-        mostrarImagem("corrida_ok.png");
+    const minAtual = hora * 60 + agora.getMinutes();
+    
+    // Janela de 1h antes do nascer ou pôr do sol
+    const diffNascer = nascerSolMinutos - minAtual;
+    const diffPor = porSolMinutos - minAtual;
+
+    const aptoNascer = diffNascer >= 0 && diffNascer <= 60;
+    const aptoPor = diffPor >= 0 && diffPor <= 60;
+    const horarioBom = aptoNascer || aptoPor;
+
+    const temperaturaBoa = tempAtual <= TEMP_BOM_CORRIDA;
+
+    if (horarioBom && temperaturaBoa) {
+        statusTxt.innerText = "✅ APTO PARA CORRER!";
+        let mensagem = `Horário ideal em ${nomeLocal} (perto do nascer/pôr do sol) e temperatura agradável (${Math.round(tempAtual)}°C).`;
+        if (tempAtual >= TEMP_ALERTA_HIDRATACAO) {
+            mensagem += " 💧 Atenção: dia quente, leve a sua garrafa de água!";
+        }
+        info.innerText = mensagem;
+        mostrarImagem("foto1.png"); // Exibe a mesma foto da maré cheia
     } else {
-        statusTxt.innerText = "🥵 QUENTE DEMAIS";
-        info.innerText = `${temp}°C: ${TEMP_LIMITE_CORRIDA}°C ou mais, evite atividade ao ar livre`;
+        statusTxt.innerText = "❌ NÃO RECOMENDADO";
+        let motivo = [];
+        if (!horarioBom) motivo.push("Fora da janela de 1h antes do nascer/pôr do sol");
+        if (!temperaturaBoa) motivo.push(`Temperatura alta (${Math.round(tempAtual)}°C)`);
+        
+        info.innerText = `Condições desfavoráveis em ${nomeLocal}: ${motivo.join('. ')}.`;
         mostrarImagem("corrida_quente.png");
     }
 }
@@ -148,12 +218,15 @@ function atualizarApp() {
     // Mostra/oculta blocos conforme o modo
     const mostrarMare = modo === 'mare';
     document.getElementById('bloco-mare').style.display = mostrarMare ? 'block' : 'none';
-    document.getElementById('titulo-app').innerText = mostrarMare ? 'Maré em Camocim' : 'Corrida em Camocim';
+    document.getElementById('titulo-app').innerText = mostrarMare ? `Maré em ${nomeLocal}` : `Corrida em ${nomeLocal}`;
     document.getElementById('btn-mare').classList.toggle('ativo', mostrarMare);
     document.getElementById('btn-corrida').classList.toggle('ativo', !mostrarMare);
 
-    if (mostrarMare) renderMare(agora, hora);
-    else renderCorrida();
+    if (mostrarMare) {
+        renderMare(agora, hora);
+    } else {
+        renderCorrida(agora, hora);
+    }
 }
 
 function trocarModo(novo) {
@@ -177,8 +250,12 @@ toggle.addEventListener('change', () => {
     }
 });
 
-// Start
-buscarAPIs();
-atualizarApp();
-setInterval(atualizarApp, 60000);
-setInterval(buscarAPIs, 15 * 60000); // atualiza clima/vento a cada 15 min
+// Inicialização
+async function iniciarApp() {
+    await obterLocalizacaoUsuario();
+    await buscarAPIs();
+    setInterval(atualizarApp, 60000);
+    setInterval(buscarAPIs, 15 * 60000);
+}
+
+iniciarApp();
