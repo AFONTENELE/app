@@ -56,7 +56,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .info-topo { display: flex; justify-content: space-around; margin-bottom: 15px; }
+        .info-topo { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         .badge-info { background: rgba(0,0,0,0.08); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; }
         body.dark-mode .badge-info { background: rgba(255,255,255,0.1); }
 
@@ -87,6 +87,7 @@
             <div class="info-topo">
                 <div class="badge-info" id="lua-display">🌑 ...</div>
                 <div class="badge-info" id="clima-display">🌡️ ...</div>
+                <div class="badge-info" id="vento-display">💨 ...</div>
             </div>
 
             <div class="foco-atual">
