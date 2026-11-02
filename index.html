@@ -68,6 +68,15 @@
         .secao-titulo { margin-top: 20px; font-size: 0.8rem; text-align: left; border-bottom: 1px solid rgba(128,128,128,0.3); padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
         .event-list { text-align: left; margin-top: 8px; }
         .event-item { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(128,128,128,0.1); }
+
+        .modos { display: flex; gap: 8px; justify-content: center; margin: 12px 0 18px; }
+        .btn-modo {
+            flex: 1; padding: 10px 14px; border-radius: 20px; cursor: pointer;
+            border: 1px solid rgba(128,128,128,0.4); background: rgba(255,255,255,0.15);
+            color: inherit; font-size: 0.95rem; transition: .3s;
+        }
+        .btn-modo.ativo { background: #00796b; color: #fff; border-color: transparent; font-weight: bold; }
+        body.dark-mode .btn-modo.ativo { background: #bb86fc; color: #1a0033; }
     </style>
 </head>
 <body class="light-mode">
@@ -81,7 +90,12 @@
         </div>
 
         <h2 id="saudacao">Olá!</h2>
-        <h1>Maré em Camocim</h1>
+        <h1 id="titulo-app">Maré em Camocim</h1>
+
+        <div class="modos">
+            <button class="btn-modo ativo" id="btn-mare">🌊 Maré</button>
+            <button class="btn-modo" id="btn-corrida">🏃 Corrida</button>
+        </div>
         
         <div class="card">
             <div class="info-topo">
@@ -97,14 +111,16 @@
 
             <img id="mare-imagem" src="" alt="Maré" class="tide-img">
 
-            <div>
-                <h4 class="secao-titulo">Hoje</h4>
-                <div id="lista-hoje" class="event-list"></div>
-            </div>
+            <div id="bloco-mare">
+                <div>
+                    <h4 class="secao-titulo">Hoje</h4>
+                    <div id="lista-hoje" class="event-list"></div>
+                </div>
 
-            <div>
-                <h4 class="secao-titulo">Amanhã</h4>
-                <div id="lista-amanha" class="event-list"></div>
+                <div>
+                    <h4 class="secao-titulo">Amanhã</h4>
+                    <div id="lista-amanha" class="event-list"></div>
+                </div>
             </div>
         </div>
     </div>
